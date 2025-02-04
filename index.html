@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en" class="font-lato w-full h-full">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Vite App</title>
+  </head>
+  <body class="flex items-center justify-center w-full h-full">
+    <main
+      class="shadow-2xl max-w-[1080px] w-full mx-auto min-h-48 rounded-[42px] px-16 py-8 "
+    >
+      <h1 class="font-bold text-gray-700 text-4xl">Todo</h1>
+      <section class="w-full py-24">
+        <div class="text-2xl text-gray-600 text-center">No todos yet</div>
+        <ul id="todo-list" class="flex  flex-col gap-4">
+
+        </ul>
+      </section>
+      <button
+      id="add-todo-btn"
+        class="text-gray-700 bg-gray-200 rounded-3xl py-4 font-bold text-2xl w-[448px] block mx-auto cursor-pointer hover:bg-gray-400 transition-colors ease-in-out"
+      >
+        Add Todo
+      </button>
+      <dialog
+ id="add-todo-dialog"
+        class=" top-1/2 left-1/2 -translate-1/2  shadow-2xl w-80 rounded-2xl "
+      >
+
+          <header class="bg-zinc-700  rounded-t-2xl py-4 px-2 flex items-center justify-between">
+            <span class="text-white font-bold text-xl">maktab-todo</span>
+            <button class="size-6" id="dialog-close-btn">
+              <img src="./src/assets/icons/close-sharp.svg" alt="">
+              <span class="sr-only">close button</span>
+            </button>
+          </header>
+          <form action="" class="p-4" id="add-todo-form">
+            <textarea name="todo-name" id="todo-name" placeholder="New todo" class="border w-full resize-none px-2 py-2" rows="4"></textarea>
+            <button type="submit" class="text-white bg-blue-500  py-3 w-48 rounded-2xl mx-auto block mt-4">Add</button>
+          </form>
+        </div>
+      </dialog>
+      <dialog
+ id="edit-todo-dialog"
+        class=" top-1/2 left-1/2 -translate-1/2  shadow-2xl w-80 rounded-2xl "
+      >
+
+          <header class="bg-zinc-700  rounded-t-2xl py-4 px-2 flex items-center justify-between">
+            <span class="text-white font-bold text-xl">maktab-todo</span>
+            <button class="size-6" id="edit-dialog-close-btn">
+              <img src="./src/assets/icons/close-sharp.svg" alt="">
+              <span class="sr-only">close button</span>
+            </button>
+          </header>
+          <form action="" class="p-4" id="edit-todo-form">
+            <textarea name="edited-todo-name" id="edited-todo-name" placeholder="New todo" class="border w-full resize-none px-2 py-2" rows="4"></textarea>
+            <button type="submit" class="text-white bg-blue-500  py-3 w-48 rounded-2xl mx-auto block mt-4">Save</button>
+            <button type="button" class="text-gray-500 border-2 border-gray-800   py-3 w-48 rounded-2xl mx-auto block mt-4">Delete</button>
+          </form>
+        </div>
+      </dialog>
+    </main>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
