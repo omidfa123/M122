@@ -1,5 +1,7 @@
 import "./style.css";
 
+const BASE_URL = "https://www.omidfaryabi.ir/api/todo";
+
 const addTodoDialog = document.querySelector("#add-todo-dialog");
 const editTodoDialog = document.querySelector("#edit-todo-dialog");
 const addTodoBtn = document.querySelector("#add-todo-btn");
@@ -10,9 +12,24 @@ const todoList = document.querySelector("#todo-list");
 const deleteTodoBtn = document.querySelector("#delete-todo-btn");
 const editTodoForm = document.querySelector("#edit-todo-form");
 
-let todos = localStorage.getItem("todos")
-  ? JSON.parse(localStorage.getItem("todos"))
-  : [];
+async function getTodos() {
+  if (!localStorage.getItem("userId")) return [];
+  const res = await fetch(BASE_URL, {
+    method: "GET",
+    headers: {
+      "x-user-id": localStorage.getItem("userId"),
+    },
+  });
+  const data = await res.json();
+
+  return data.map((todo) => ({
+    todoName: todo.title,
+    todoID: todo.id,
+    isDone: todo.is_done,
+  }));
+}
+
+let todos = localStorage.getItem("userId") ? await getTodos() : [];
 
 renderTodo(todos);
 if (todos.length > 0) {
@@ -34,40 +51,90 @@ addTodoForm.addEventListener("submit", (e) => {
   const todoName = e.target["todo-name"].value;
   if (!todoName) return;
 
-  const todoItem = { todoName, isDone: false, todoID: crypto.randomUUID() };
+  // const todoItem = { todoName, isDone: false, todoID: crypto.randomUUID() };
 
-  addTodo(todoItem);
-  if (todos.length > 0) {
-    todoList.previousElementSibling.classList.add("hidden");
-  } else {
-    todoList.previousElementSibling.classList.remove("hidden");
-  }
+  addTodo(todoName);
+
   addTodoDialog.close();
   addTodoForm.reset();
 });
-todoList.addEventListener("click", (e) => {
+todoList.addEventListener("click", async (e) => {
   if (e.target.parentNode.id === "todo-edit-btn") {
     const todoID =
       e.target.parentNode.previousElementSibling.children.item(0).id;
     openEditModal(todoID);
   }
   if (e.target.type === "checkbox") {
-    todos = todos.map((todo) => {
-      if (todo.todoID === e.target.id) {
-        return { ...todo, isDone: !todo.isDone };
-      }
-      return todo;
+    const res = await fetch(BASE_URL, {
+      method: "PATCH",
+      body: JSON.stringify({
+        id: e.target.id,
+        is_done: !todos.find((todo) => todo.todoID === +e.target.id).isDone,
+      }),
+      headers: {
+        "x-user-id": localStorage.getItem("userId"),
+        "Content-Type": "application/json",
+      },
     });
-    renderTodo(todos);
+
+    const data = await res.json();
+    if (res.ok) {
+      todos = todos.map((todo) => {
+        if (todo.todoID === +e.target.id) {
+          return { ...todo, isDone: !todo.isDone };
+        }
+        return todo;
+      });
+      renderTodo(todos);
+    } else {
+      alert(data.error);
+    }
   }
 });
 
 deleteTodoBtn.addEventListener("click", deleteTodo);
 editTodoForm.addEventListener("submit", editTodo);
 
-function addTodo(todo) {
-  todos = [...todos, todo];
+async function postTodo(todo) {
+  const headers = {
+    "Content-Type": "application/json",
+  };
+  if (localStorage.getItem("userId")) {
+    headers["x-user-id"] = localStorage.getItem("userId");
+  }
+
+  const response = await fetch(BASE_URL, {
+    method: "POST",
+    body: JSON.stringify({ title: todo, description: "" }),
+    headers,
+  });
+  const data = await response.json();
+
+  todos = [
+    ...todos,
+    {
+      todoName: localStorage.getItem("userId") ? data.title : data.todo.title,
+      isDone: false,
+      todoID: localStorage.getItem("userId") ? data.id : data.todo.id,
+    },
+  ];
+
+  if (!localStorage.getItem("userId")) {
+    localStorage.setItem("userId", data.userId);
+  }
+  console.log(data);
+
+  console.log(data);
+}
+
+async function addTodo(todo) {
+  await postTodo(todo);
   renderTodo(todos);
+  if (todos.length > 0) {
+    todoList.previousElementSibling.classList.add("hidden");
+  } else {
+    todoList.previousElementSibling.classList.remove("hidden");
+  }
 }
 function renderTodo(todos) {
   todoList.innerHTML = "";
@@ -106,36 +173,71 @@ function renderTodo(todos) {
 function openEditModal(id) {
   const editForm = editTodoDialog.children.item(1);
   editForm.dataset.editId = id;
-  const editTodo = todos.find((todo) => todo.todoID === id);
+  console.log(id);
+  const editTodo = todos.find((todo) => todo.todoID === +id);
+  console.log(todos);
+  console.log(editTodo);
   editForm.children.item(0).value = editTodo.todoName;
   editTodoDialog.showModal();
 }
 
-function deleteTodo(e) {
+async function deleteTodo(e) {
   const editId = e.target.parentNode.dataset.editId;
-  todos = todos.filter((todo) => todo.todoID !== editId);
-  renderTodo(todos);
-  if (todos.length > 0) {
-    todoList.previousElementSibling.classList.add("hidden");
+
+  const res = await fetch(BASE_URL, {
+    method: "DELETE",
+    body: JSON.stringify({ id: editId }),
+    headers: {
+      "x-user-id": localStorage.getItem("userId"),
+    },
+  });
+  const data = await res.json();
+
+  if (res.ok) {
+    console.log(data);
+    console.log(todos);
+    todos = todos.filter((todo) => todo.todoID !== +editId);
+
+    renderTodo(todos);
+    if (todos.length > 0) {
+      todoList.previousElementSibling.classList.add("hidden");
+    } else {
+      todoList.previousElementSibling.classList.remove("hidden");
+    }
+    editTodoDialog.close();
   } else {
-    todoList.previousElementSibling.classList.remove("hidden");
+    alert(data.error);
   }
-  editTodoDialog.close();
 }
-function editTodo(event) {
+async function editTodo(event) {
   event.preventDefault();
   const editValue = event.target["edited-todo-name"].value;
   const editId = event.target.dataset.editId;
-  todos = todos.map((todo) => {
-    if (todo.todoID === editId) {
-      return { ...todo, todoName: editValue };
-    } else {
-      return todo;
-    }
+
+  const res = await fetch(BASE_URL, {
+    method: "PATCH",
+    body: JSON.stringify({ id: editId, title: editValue }),
+    headers: {
+      "x-user-id": localStorage.getItem("userId"),
+      "Content-Type": "application/json",
+    },
   });
 
-  renderTodo(todos);
-  editTodoDialog.close();
+  const data = await res.json();
+  if (res.ok) {
+    todos = todos.map((todo) => {
+      if (todo.todoID === +editId) {
+        return { ...todo, todoName: editValue };
+      } else {
+        return todo;
+      }
+    });
+
+    renderTodo(todos);
+    editTodoDialog.close();
+  } else {
+    alert(data.error);
+  }
 }
 
 function saveTodos(todos) {
